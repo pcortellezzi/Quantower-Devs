@@ -10,14 +10,17 @@
     <RootNamespace>RSIBands</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\AMP Quantower\TradingPlatform\v1.130.6\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\AMP Quantower\TradingPlatform\v1.130.6\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
   </PropertyGroup>
   <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
+  </ItemGroup>
+  <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
-      <HintPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <HintPath>C:\Users\phili\Apps\AMP Quantower\TradingPlatform\v1.130.6\bin\TradingPlatform.BusinessLayer.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

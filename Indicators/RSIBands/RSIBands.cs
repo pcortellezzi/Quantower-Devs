@@ -1,7 +1,6 @@
-// Copyright QUANTOWER LLC. © 2017-2022. All rights reserved.
-
 using System;
 using System.Drawing;
+using System.Linq;
 using TradingPlatform.BusinessLayer;
 
 namespace RSIBands {
@@ -14,14 +13,9 @@ namespace RSIBands {
         private double NUpOld = 0;
         private double PLowOld = 0;
         private double NLowOld = 0;
-        
-        private double diff = 0;
-        private double W = 0;
-        private double S = 0;
-        private double HypotheticalCloseToMatchRSITarget = 0;
 
         private HistoricalData mtfData = null;
-        private Indicator rsiBands = null;
+        private Indicator mtfIndicator = null;
 
         [InputParameter("MTFPeriod", 10)]
         public Period MTFPeriod = Period.MIN5;
@@ -39,15 +33,12 @@ namespace RSIBands {
         public override string SourceCodeLink => "https://github.com/pcortellezzi/Quantower-Devs/blob/main/Indicators/RSIBands/RSIBands.cs";
 
         public RSIBands() : base() {
-            // Defines indicator's name and description.
             Name = "RSIBands";
             Description = @"Francois Bertrand's RSI Bands as outlined in Stocks & Commodities April 2008 issue.";
 
-            // Defines line on demand with particular parameters.
             AddLineSeries("RSIBandUpper", Color.CadetBlue, 1, LineStyle.Solid);
             AddLineSeries("RSIBandLower", Color.CadetBlue, 1, LineStyle.Solid);
 
-            // By default indicator will be applied on main window of the chart
             SeparateWindow = false;
             UpdateType = IndicatorUpdateType.OnTick;
             IsUpdateTypesSupported = false;
@@ -61,108 +52,81 @@ namespace RSIBands {
         }
 
         protected override void OnInit() {
-            if (MTFPeriod != this.HistoricalData.Period) {
-                this.mtfData = this.Symbol.GetHistory(MTFPeriod, this.HistoricalData.FromTime, this.HistoricalData.ToTime);
-                this.rsiBands = new RSIBands(this.MTFPeriod, this.rsiPeriod, this.RSIUpperLevel, this.RSILowerLevel);
-                this.mtfData.AddIndicator(this.rsiBands);
+            if (MTFPeriod != this.HistoricalData.Period){
+                this.mtfData = this.Symbol.GetHistory(MTFPeriod, this.HistoricalData.HistoryType, this.HistoricalData.FromTime);
+                this.mtfIndicator = new RSIBands(this.MTFPeriod, this.rsiPeriod, this.RSIUpperLevel, this.RSILowerLevel);
+                this.mtfData.AddIndicator(this.mtfIndicator);
             }
         }
 
         protected override void OnUpdate(UpdateArgs args) {
+
             if (this.Count < 1)
                 return;
 
-            if (args.Reason != UpdateReason.NewTick) {
-                this.PUpOld = this.PUp;
-                this.NUpOld = this.NUp;
-                this.PLowOld = this.PLow;
-                this.NLowOld = this.NLow;
-            }
-
             if (this.mtfData == null) {
+                //indicator calculation
+                if (args.Reason != UpdateReason.NewTick) {
+                    this.PUpOld = this.PUp;
+                    this.NUpOld = this.NUp;
+                    this.PLowOld = this.PLow;
+                    this.NLowOld = this.NLow;
+                }
+
                 SetValue(BuiltInRSIequivalent(this.RSIUpperLevel, this.PUpOld, this.NUpOld, GetValue(1), this.Close(0), this.Close(1)));
                 SetValue(BuiltInRSIequivalent(this.RSILowerLevel, this.PLowOld, this.NLowOld, GetValue(1, 1), this.Close(0), this.Close(1)), 1);
-            }
-            else
-            {
-                int offsetMTFData = (int)this.mtfData.GetIndexByTime(this.Time().Ticks);
-
-                if (offsetMTFData < 0)
-                    return;
-
-                if ((this.mtfData[offsetMTFData] as HistoryItemBar).TimeLeft == this.Time())
-                {
-                    SetValue(this.rsiBands.GetValue(offsetMTFData));
-                    SetValue(this.rsiBands.GetValue(offsetMTFData, 1), 1);
-                    int offset1 = (int)this.HistoricalData.GetIndexByTime(this.Time().Ticks);
-                    int offset2 = (int)this.HistoricalData.GetIndexByTime((this.mtfData[offsetMTFData + 1] as HistoryItemBar).TimeLeft.Ticks);
-                    if (offset1 == 0) {
-                        for (int i = 1; i < offset2; i++) {
-                            SetValue(this.rsiBands.GetValue(offsetMTFData) - (this.rsiBands.GetValue(offsetMTFData) - this.rsiBands.GetValue(offsetMTFData + 1)) / offset2 * i, 0, i);
-                            SetValue(this.rsiBands.GetValue(offsetMTFData, 1) - (this.rsiBands.GetValue(offsetMTFData, 1) - this.rsiBands.GetValue(offsetMTFData + 1, 1)) / offset2 * i, 1, i);
+            } else {
+                //generic MTF calculation
+                int mtfOffset = (int)this.mtfData.GetIndexByTime(this.Time().Ticks);
+                if ((this.mtfData[mtfOffset] as HistoryItemBar).TimeLeft == this.Time()) {
+                    int prevOffset = (int)this.HistoricalData.GetIndexByTime((this.mtfData[mtfOffset + 1] as HistoryItemBar).TimeLeft.Ticks);
+                    int curOffset = (int)this.HistoricalData.GetIndexByTime(this.Time().Ticks);
+                    for (int i = 0; i < this.LinesSeries.Count(); i++) {
+                        double prevValue = this.mtfIndicator.GetValue(mtfOffset + 1, i);
+                        double curValue = this.mtfIndicator.GetValue(mtfOffset, i);
+                        for (int j = 1; j <= (prevOffset - curOffset); j++) {
+                            SetValue(prevValue + (curValue - prevValue) / (prevOffset - curOffset) * j, i, (prevOffset - curOffset) - j);
                         }
                     }
                 } else {
-                    int offset = (int)this.HistoricalData.GetIndexByTime(this.Time().Ticks);
-                    int offset1 = (int)this.HistoricalData.GetIndexByTime((this.mtfData[offsetMTFData] as HistoryItemBar).TimeLeft.Ticks);
-                    int offset2 = (int)this.HistoricalData.GetIndexByTime((this.mtfData[offsetMTFData + 1] as HistoryItemBar).TimeLeft.Ticks);
-                    SetValue(this.rsiBands.GetValue(offsetMTFData) + (this.rsiBands.GetValue(offsetMTFData - 1) - this.rsiBands.GetValue(offsetMTFData)) / (offset2 - offset1) * (offset1 - offset));
-                    SetValue(this.rsiBands.GetValue(offsetMTFData, 1) + (this.rsiBands.GetValue(offsetMTFData - 1, 1) - this.rsiBands.GetValue(offsetMTFData, 1)) / (offset2 - offset1) * (offset1 - offset), 1);
+                    for (int i = 0; i < this.LinesSeries.Count(); i++) {
+                        SetValue(this.mtfIndicator.GetValue(mtfOffset, i), i);
+                    }
                 }
             }
+
         }
 
         private double BuiltInRSIequivalent(int TargetRSILevel, double P, double N, double PrevRSIBand, double Close, double PrevClose) {
-            this.W = 0;
-            this.S = 0;
+            double W = 0;
+            double S = 0;
+            double diff = Close - PrevClose;
+            double HypotheticalCloseToMatchRSITarget = 0;
 
-            this.diff = Close - PrevClose;
-
-            if (this.diff > 0)
-                this.W = this.diff;
-            else if (this.diff < 0)
-                this.S = -this.diff;
+            if (diff > 0)
+                W = diff;
+            else if (diff < 0)
+                S = -diff;
 
             if (PrevRSIBand > PrevClose)
-                this.HypotheticalCloseToMatchRSITarget = PrevClose + P - P * this.rsiPeriod - ((N * this.rsiPeriod) - N) * TargetRSILevel / (TargetRSILevel - 100);
+                HypotheticalCloseToMatchRSITarget = PrevClose + P - P * this.rsiPeriod - ((N * this.rsiPeriod) - N) * TargetRSILevel / (TargetRSILevel - 100);
             else
-                this.HypotheticalCloseToMatchRSITarget = PrevClose - N - P + N * this.rsiPeriod + P * this.rsiPeriod + (100 * P) / TargetRSILevel - (100 * P * this.rsiPeriod) / TargetRSILevel;
+                HypotheticalCloseToMatchRSITarget = PrevClose - N - P + N * this.rsiPeriod + P * this.rsiPeriod + (100 * P) / TargetRSILevel - (100 * P * this.rsiPeriod) / TargetRSILevel;
 
             if (PrevRSIBand == GetValue(1)) {
-                this.PUp = ((this.rsiPeriod - 1) * P + this.W) / this.rsiPeriod;
-                this.NUp = ((this.rsiPeriod - 1) * N + this.S) / this.rsiPeriod;
+                this.PUp = ((this.rsiPeriod - 1) * P + W) / this.rsiPeriod;
+                this.NUp = ((this.rsiPeriod - 1) * N + S) / this.rsiPeriod;
             } else if (PrevRSIBand == GetValue(1, 1)) {
-                this.PLow = ((this.rsiPeriod - 1) * P + this.W) / this.rsiPeriod;
-                this.NLow = ((this.rsiPeriod - 1) * N + this.S) / this.rsiPeriod;
+                this.PLow = ((this.rsiPeriod - 1) * P + W) / this.rsiPeriod;
+                this.NLow = ((this.rsiPeriod - 1) * N + S) / this.rsiPeriod;
             }
 
             return HypotheticalCloseToMatchRSITarget;
         }
 
-        /*public override void OnPaintChart(PaintChartEventArgs args)
-        {
-            Graphics gr = args.Graphics;
-            Font f = new Font("Arial", 10);
-
-            // Draw results for main symbol            
-            gr.DrawString("Periode: " + this.HistoricalData.Period, new Font(f, FontStyle.Underline), Brushes.Green, 10, 100);
-            gr.DrawString("(0): " + (this.HistoricalData[0] as HistoryItemBar).TimeLeft, f, Brushes.Green, 10, 120);
-            gr.DrawString("(1): " + (this.HistoricalData[1] as HistoryItemBar).TimeLeft, f, Brushes.Green, 10, 140);
-            gr.DrawString("GetValue(0): " + GetValue(0), f, Brushes.Green, 10, 160);
-            gr.DrawString("GetValue(1): " + GetValue(1), f, Brushes.Green, 10, 180);
-
-            if (this.mtfData != null) {
-                int offsetMTFData = (int)this.mtfData.GetIndexByTime(this.Time().Ticks);
-                gr.DrawString("Periode: " + this.mtfData.Period, new Font(f, FontStyle.Underline), Brushes.LightCoral, 300, 100);
-                gr.DrawString("offsetMTFData(" + offsetMTFData + "): " + (this.mtfData[offsetMTFData] as HistoryItemBar).TimeLeft, f, Brushes.LightCoral, 300, 120);
-                gr.DrawString("offsetMTFData + 1 (" + (offsetMTFData + 1) + "): " + (this.mtfData[offsetMTFData + 1] as HistoryItemBar).TimeLeft, f, Brushes.LightCoral, 300, 140);
-                gr.DrawString("GetValue("+ offsetMTFData + "): " + this.rsiBands.GetValue(offsetMTFData), f, Brushes.LightCoral, 300, 160);
-                gr.DrawString("GetValue("+ (offsetMTFData + 1) + "): " + this.rsiBands.GetValue(offsetMTFData + 1), f, Brushes.LightCoral, 300, 180);
-            }
-        }*/
-
         protected override void OnClear() {
             this.mtfData?.Dispose();
+            this.mtfData = null;
         }
     }
 }

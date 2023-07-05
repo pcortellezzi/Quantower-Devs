@@ -5,14 +5,9 @@ using TradingPlatform.BusinessLayer;
 
 namespace RSIBands {
 	public class RSIBands : Indicator {
-        private double PUp = 0;
-        private double NUp = 0;
-        private double PLow = 0;
-        private double NLow = 0;
-        private double PUpOld = 0;
-        private double NUpOld = 0;
-        private double PLowOld = 0;
-        private double NLowOld = 0;
+        private HistoricalDataCustom hdc = null;
+        private Indicator EMAu = null;
+        private Indicator EMAd = null;
 
         private HistoricalData mtfData = null;
         private Indicator mtfIndicator = null;
@@ -56,6 +51,12 @@ namespace RSIBands {
                 this.mtfData = this.Symbol.GetHistory(MTFPeriod, this.HistoricalData.HistoryType, this.HistoricalData.FromTime);
                 this.mtfIndicator = new RSIBands(this.MTFPeriod, this.rsiPeriod, this.RSIUpperLevel, this.RSILowerLevel);
                 this.mtfData.AddIndicator(this.mtfIndicator);
+            } else {
+                this.EMAu = Core.Indicators.BuiltIn.EMA(2 * this.rsiPeriod - 1, PriceType.Open);
+                this.EMAd = Core.Indicators.BuiltIn.EMA(2 * this.rsiPeriod - 1, PriceType.Close);
+                this.hdc = new HistoricalDataCustom(this);
+                this.hdc.AddIndicator(this.EMAu);
+                this.hdc.AddIndicator(this.EMAd);
             }
         }
 
@@ -65,17 +66,14 @@ namespace RSIBands {
                 return;
 
             if (this.mtfData == null) {
-                //indicator calculation
-                if (args.Reason != UpdateReason.NewTick) {
-                    this.PUpOld = this.PUp;
-                    this.NUpOld = this.NUp;
-                    this.PLowOld = this.PLow;
-                    this.NLowOld = this.NLow;
-                }
-
-                SetValue(BuiltInRSIequivalent(this.RSIUpperLevel, this.PUpOld, this.NUpOld, GetValue(1), this.Close(0), this.Close(1)));
-                SetValue(BuiltInRSIequivalent(this.RSILowerLevel, this.PLowOld, this.NLowOld, GetValue(1, 1), this.Close(0), this.Close(1)), 1);
-            } else {
+                this.hdc[PriceType.Open, 0] = Math.Max(Close() - Close(1), 0);
+                this.hdc[PriceType.Close, 0] = Math.Max(Close(1) - Close(), 0);
+                double xu = (this.rsiPeriod - 1) * (this.EMAd.GetValue() * this.RSIUpperLevel / (100 - this.RSIUpperLevel) - this.EMAu.GetValue());
+                double xl = (this.rsiPeriod - 1) * (this.EMAd.GetValue() * this.RSILowerLevel / (100 - this.RSILowerLevel) - this.EMAu.GetValue());
+                SetValue(xu >= 0 ? Close() + xu : Close() + xu * (100 - this.RSIUpperLevel) / this.RSIUpperLevel);
+                SetValue(xl >= 0 ? Close() + xl : Close() + xl * (100 - this.RSILowerLevel) / this.RSILowerLevel, 1);
+            }
+            else {
                 //generic MTF calculation
                 int mtfOffset = (int)this.mtfData.GetIndexByTime(this.Time().Ticks);
                 if ((this.mtfData[mtfOffset] as HistoryItemBar).TimeLeft == this.Time()) {
@@ -95,33 +93,6 @@ namespace RSIBands {
                 }
             }
 
-        }
-
-        private double BuiltInRSIequivalent(int TargetRSILevel, double P, double N, double PrevRSIBand, double Close, double PrevClose) {
-            double W = 0;
-            double S = 0;
-            double diff = Close - PrevClose;
-            double HypotheticalCloseToMatchRSITarget = 0;
-
-            if (diff > 0)
-                W = diff;
-            else if (diff < 0)
-                S = -diff;
-
-            if (PrevRSIBand > PrevClose)
-                HypotheticalCloseToMatchRSITarget = PrevClose + P - P * this.rsiPeriod - ((N * this.rsiPeriod) - N) * TargetRSILevel / (TargetRSILevel - 100);
-            else
-                HypotheticalCloseToMatchRSITarget = PrevClose - N - P + N * this.rsiPeriod + P * this.rsiPeriod + (100 * P) / TargetRSILevel - (100 * P * this.rsiPeriod) / TargetRSILevel;
-
-            if (PrevRSIBand == GetValue(1)) {
-                this.PUp = ((this.rsiPeriod - 1) * P + W) / this.rsiPeriod;
-                this.NUp = ((this.rsiPeriod - 1) * N + S) / this.rsiPeriod;
-            } else if (PrevRSIBand == GetValue(1, 1)) {
-                this.PLow = ((this.rsiPeriod - 1) * P + W) / this.rsiPeriod;
-                this.NLow = ((this.rsiPeriod - 1) * N + S) / this.rsiPeriod;
-            }
-
-            return HypotheticalCloseToMatchRSITarget;
         }
 
         protected override void OnClear() {

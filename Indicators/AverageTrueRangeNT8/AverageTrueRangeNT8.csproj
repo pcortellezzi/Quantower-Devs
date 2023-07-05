@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>AnyCPU</Platforms>
@@ -10,14 +10,14 @@
     <RootNamespace>AverageTrueRangeNT8</RootNamespace>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\..\..\Settings\Scripts\Indicators\AverageTrueRangeNT8</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\..\..\Settings\Scripts\Indicators\AverageTrueRangeNT8</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\..\..\Settings\Scripts\Indicators\AverageTrueRangeNT8</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\..\..\Settings\Scripts\Indicators\AverageTrueRangeNT8</OutputPath>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
-      <HintPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.130.11\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <HintPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\bin\TradingPlatform.BusinessLayer.dll</HintPath>
       <Private>False</Private>
     </Reference>
   </ItemGroup>

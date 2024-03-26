@@ -1,7 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net7.0</TargetFramework>
+    <TargetFramework>net8.0</TargetFramework>
     <LangVersion>latest</LangVersion>
     <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
     <Platforms>AnyCPU</Platforms>
@@ -11,18 +11,18 @@
     <PlatformTarget>AnyCPU</PlatformTarget>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.138.11\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
-    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
+    <OutputPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.138.11\..\..\Settings\Scripts\Indicators\RSIBands</OutputPath>
   </PropertyGroup>
   <ItemGroup>
-    <PackageReference Include="System.Drawing.Common" Version="7.0.0" />
-  </ItemGroup>
-  <ItemGroup>
     <Reference Include="TradingPlatform.BusinessLayer">
-      <HintPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.133.7\bin\TradingPlatform.BusinessLayer.dll</HintPath>
+      <HintPath>C:\Users\phili\Apps\Quantower\TradingPlatform\v1.138.11\bin\TradingPlatform.BusinessLayer.dll</HintPath>
       <Private>False</Private>
     </Reference>
+  </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="System.Drawing.Common" Version="8.0.3" />
   </ItemGroup>
 </Project>

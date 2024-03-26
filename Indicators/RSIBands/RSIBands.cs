@@ -4,7 +4,7 @@ using System.Linq;
 using TradingPlatform.BusinessLayer;
 
 namespace RSIBands {
-	public class RSIBands : Indicator {
+	public class RSIBands : Indicator, IWatchlistIndicator {
         private HistoricalDataCustom hdc = null;
         private Indicator EMAu = null;
         private Indicator EMAd = null;
@@ -24,6 +24,8 @@ namespace RSIBands {
         [InputParameter("RSI Lower Level", 40, 1, 99999, 1, 1)]
         public int RSILowerLevel = 30;
 
+        public int MinHistoryDepths => 1000;
+
         public override string ShortName => $"{this.Name} ({this.rsiPeriod}: {this.RSIUpperLevel}/{this.RSILowerLevel} @ {this.MTFPeriod})";
         public override string SourceCodeLink => "https://github.com/pcortellezzi/Quantower-Devs/blob/main/Indicators/RSIBands/RSIBands.cs";
 
@@ -32,6 +34,7 @@ namespace RSIBands {
             Description = @"Francois Bertrand's RSI Bands as outlined in Stocks & Commodities April 2008 issue.";
 
             AddLineSeries("RSIBandUpper", Color.CadetBlue, 1, LineStyle.Solid);
+            AddLineSeries("RSIBandMiddle", Color.WhiteSmoke, 1, LineStyle.Dash);
             AddLineSeries("RSIBandLower", Color.CadetBlue, 1, LineStyle.Solid);
 
             SeparateWindow = false;
@@ -70,8 +73,11 @@ namespace RSIBands {
                 this.hdc[PriceType.Close, 0] = Math.Max(Close(1) - Close(), 0);
                 double xu = (this.rsiPeriod - 1) * (this.EMAd.GetValue() * this.RSIUpperLevel / (100 - this.RSIUpperLevel) - this.EMAu.GetValue());
                 double xl = (this.rsiPeriod - 1) * (this.EMAd.GetValue() * this.RSILowerLevel / (100 - this.RSILowerLevel) - this.EMAu.GetValue());
-                SetValue(xu >= 0 ? Close() + xu : Close() + xu * (100 - this.RSIUpperLevel) / this.RSIUpperLevel);
-                SetValue(xl >= 0 ? Close() + xl : Close() + xl * (100 - this.RSILowerLevel) / this.RSILowerLevel, 1);
+                double rsiUpper = (xu >= 0 ? Close() + xu : Close() + xu * (100 - this.RSIUpperLevel) / this.RSIUpperLevel);
+                double rsiLower = (xl >= 0 ? Close() + xl : Close() + xl * (100 - this.RSILowerLevel) / this.RSILowerLevel);
+                SetValue(rsiUpper);
+                SetValue(rsiLower + (rsiUpper - rsiLower) / 2, 1);
+                SetValue(rsiLower, 2);
             }
             else {
                 //generic MTF calculation
